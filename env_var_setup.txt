@@ -1,0 +1,15 @@
+# Network (custom bridge with static IPs—matches your prior 172.24.0.x usage)
+REDIS_SUBNET=172.24.0.0/24
+REDIS_GATEWAY=172.24.0.1
+
+REDIS_PROD_IP=172.24.0.2
+REDIS_STAGING_IP=172.24.0.3
+REDIS_DEV04_IP=172.24.0.4
+REDIS_DEV05_IP=172.24.0.5
+
+# Host ports (optional; only needed if you want to connect from host/other boxes)
+REDIS_PROD_PORT=6379
+REDIS_STAGING_PORT=6380
+REDIS_DEV04_PORT=6381
+REDIS_DEV05_PORT=6382
+

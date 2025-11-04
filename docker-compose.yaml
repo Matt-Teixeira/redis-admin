@@ -1,0 +1,89 @@
+# Compose v2 (no "version:" key needed)
+x-common: &common
+  image: redis:7-alpine
+  restart: unless-stopped
+  command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+  ulimits:
+    nofile:
+      soft: 10032
+      hard: 10032
+  healthcheck:
+    test: ["CMD", "redis-cli", "ping"]
+    interval: 10s
+    timeout: 3s
+    retries: 5
+  networks:
+    redis_net:
+      ipv4_address: 0.0.0.0 # overwritten per service
+
+services:
+  redis-PROD:
+    <<: *common
+    container_name: redis-PROD
+    volumes:
+      - prod_data:/data
+      - ./conf/prod.conf:/usr/local/etc/redis/redis.conf:ro
+    ports:
+      - "${REDIS_PROD_PORT}:6379"
+    networks:
+      redis_net:
+        ipv4_address: "${REDIS_PROD_IP}"
+    environment:
+      # If you set REDIS_PASSWORD in .env, this helps redis-cli in healthcheck
+      - REDISCLI_AUTH=${REDIS_PASSWORD}
+
+  redis-STAGING:
+    <<: *common
+    container_name: redis-STAGING
+    volumes:
+      - staging_data:/data
+      - ./conf/staging.conf:/usr/local/etc/redis/redis.conf:ro
+    ports:
+      - "${REDIS_STAGING_PORT}:6379"
+    networks:
+      redis_net:
+        ipv4_address: "${REDIS_STAGING_IP}"
+    environment:
+      - REDISCLI_AUTH=${REDIS_PASSWORD}
+
+  redis_dev-0-4:
+    <<: *common
+    container_name: redis_dev-0-4
+    volumes:
+      - dev04_data:/data
+      - ./conf/dev04.conf:/usr/local/etc/redis/redis.conf:ro
+    ports:
+      - "${REDIS_DEV04_PORT}:6379"
+    networks:
+      redis_net:
+        ipv4_address: "${REDIS_DEV04_IP}"
+    environment:
+      - REDISCLI_AUTH=${REDIS_PASSWORD}
+
+  redis_dev-0-5:
+    <<: *common
+    container_name: redis_dev-0-5
+    volumes:
+      - dev05_data:/data
+      - ./conf/dev05.conf:/usr/local/etc/redis/redis.conf:ro
+    ports:
+      - "${REDIS_DEV05_PORT}:6379"
+    networks:
+      redis_net:
+        ipv4_address: "${REDIS_DEV05_IP}"
+    environment:
+      - REDISCLI_AUTH=${REDIS_PASSWORD}
+
+networks:
+  redis_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: "${REDIS_SUBNET}"
+          gateway: "${REDIS_GATEWAY}"
+
+volumes:
+  prod_data:
+  staging_data:
+  dev04_data:
+  dev05_data:
