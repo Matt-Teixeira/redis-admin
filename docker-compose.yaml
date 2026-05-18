@@ -23,8 +23,6 @@ services:
     volumes:
       - prod_data:/data
       - ./conf/prod.conf:/usr/local/etc/redis/redis.conf:ro
-    ports:
-      - "${REDIS_PROD_PORT}:6379"
     networks:
       redis_net:
         ipv4_address: "${REDIS_PROD_IP}"
@@ -35,8 +33,6 @@ services:
     volumes:
       - staging_data:/data
       - ./conf/staging.conf:/usr/local/etc/redis/redis.conf:ro
-    ports:
-      - "${REDIS_STAGING_PORT}:6379"
     networks:
       redis_net:
         ipv4_address: "${REDIS_STAGING_IP}"
@@ -47,8 +43,6 @@ services:
     volumes:
       - dev04_data:/data
       - ./conf/dev04.conf:/usr/local/etc/redis/redis.conf:ro
-    ports:
-      - "${REDIS_DEV04_PORT}:6379"
     networks:
       redis_net:
         ipv4_address: "${REDIS_DEV04_IP}"
@@ -59,8 +53,6 @@ services:
     volumes:
       - dev05_data:/data
       - ./conf/dev05.conf:/usr/local/etc/redis/redis.conf:ro
-    ports:
-      - "${REDIS_DEV05_PORT}:6379"
     networks:
       redis_net:
         ipv4_address: "${REDIS_DEV05_IP}"

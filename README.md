@@ -1,15 +1,15 @@
 # redis-admin
 
-Compose-managed Redis instances for the `prod`, `staging`, and two `dev` environments. Each instance runs in its own container on a dedicated bridge network with a static IP and a host port.
+Compose-managed Redis instances for the `prod`, `staging`, and two `dev` environments. Each instance runs in its own container on a dedicated bridge network with a static IP. Ports are not published to the host — Redis is reachable only from other containers on the `redis_net` network, or via `docker exec` from the host.
 
 ## Layout
 
-| Service          | Container         | Host port | Internal IP      |
-| ---------------- | ----------------- | --------- | ---------------- |
-| `redis-PROD`     | `redis-PROD`      | 6379      | `172.24.0.2`     |
-| `redis-STAGING`  | `redis-STAGING`   | 6380      | `172.24.0.3`     |
-| `redis_dev-0-4`  | `redis_dev-0-4`   | 6381      | `172.24.0.4`     |
-| `redis_dev-0-5`  | `redis_dev-0-5`   | 6382      | `172.24.0.5`     |
+| Service          | Container         | Internal address      |
+| ---------------- | ----------------- | --------------------- |
+| `redis-PROD`     | `redis-PROD`      | `172.24.0.2:6379`     |
+| `redis-STAGING`  | `redis-STAGING`   | `172.24.0.3:6379`     |
+| `redis_dev-0-4`  | `redis_dev-0-4`   | `172.24.0.4:6379`     |
+| `redis_dev-0-5`  | `redis_dev-0-5`   | `172.24.0.5:6379`     |
 
 All containers run `redis:7-alpine` with `appendonly` persistence to a named Docker volume (`prod_data`, `staging_data`, `dev04_data`, `dev05_data`).
 
@@ -37,19 +37,31 @@ docker compose logs redis-PROD
 
 ## Connecting
 
-From the host:
+From the host (via `docker exec`):
 
 ```bash
-redis-cli -h 127.0.0.1 -p 6379    # PROD
-redis-cli -h 127.0.0.1 -p 6380    # STAGING
-redis-cli -h 127.0.0.1 -p 6381    # dev-0-4
-redis-cli -h 127.0.0.1 -p 6382    # dev-0-5
+docker exec -it redis-PROD      redis-cli
+docker exec -it redis-STAGING   redis-cli
+docker exec -it redis_dev-0-4   redis-cli
+docker exec -it redis_dev-0-5   redis-cli
 ```
 
-From inside a container:
+From another container attached to `redis_net`, use the container name or static IP as the host (port `6379` in all cases):
 
 ```bash
-docker exec -it redis-PROD redis-cli
+redis-cli -h redis-PROD       # or -h 172.24.0.2
+redis-cli -h redis-STAGING    # or -h 172.24.0.3
+redis-cli -h redis_dev-0-4    # or -h 172.24.0.4
+redis-cli -h redis_dev-0-5    # or -h 172.24.0.5
+```
+
+To attach an external app's container to this network, add to its compose file:
+
+```yaml
+networks:
+  redis_net:
+    external: true
+    name: redis-admin_redis_net
 ```
 
 ## Lifecycle
