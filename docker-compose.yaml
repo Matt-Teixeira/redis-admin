@@ -28,9 +28,6 @@ services:
     networks:
       redis_net:
         ipv4_address: "${REDIS_PROD_IP}"
-    environment:
-      # If you set REDIS_PASSWORD in .env, this helps redis-cli in healthcheck
-      - REDISCLI_AUTH=${REDIS_PASSWORD}
 
   redis-STAGING:
     <<: *common
@@ -43,8 +40,6 @@ services:
     networks:
       redis_net:
         ipv4_address: "${REDIS_STAGING_IP}"
-    environment:
-      - REDISCLI_AUTH=${REDIS_PASSWORD}
 
   redis_dev-0-4:
     <<: *common
@@ -57,8 +52,6 @@ services:
     networks:
       redis_net:
         ipv4_address: "${REDIS_DEV04_IP}"
-    environment:
-      - REDISCLI_AUTH=${REDIS_PASSWORD}
 
   redis_dev-0-5:
     <<: *common
@@ -71,8 +64,6 @@ services:
     networks:
       redis_net:
         ipv4_address: "${REDIS_DEV05_IP}"
-    environment:
-      - REDISCLI_AUTH=${REDIS_PASSWORD}
 
 networks:
   redis_net:
