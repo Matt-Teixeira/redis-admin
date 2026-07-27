@@ -17,7 +17,7 @@ All containers run `redis:7-alpine` with `appendonly` persistence to a named Doc
 
 - [docker-compose.yaml](docker-compose.yaml) — service definitions, network, volumes
 - [.env](.env) — subnet, IPs, host ports, optional passwords (not committed; see [.gitignore](.gitignore))
-- [config/](config/) — per-instance Redis config files (see "Known issues" below)
+- [config/](config/) — per-instance Redis config files, bind-mounted into each container
 - [commands.sh](commands.sh) — handy raw `docker` commands for ad-hoc start/stop/rebuild
 
 ## Setup
@@ -62,7 +62,26 @@ docker compose down -v                # also remove data volumes (destructive)
 docker compose restart redis-PROD     # restart one service
 ```
 
+## Config files
+
+Each service bind-mounts `./config/<name>.config` to `/usr/local/etc/redis/redis.conf`
+using long-form volume syntax with `create_host_path: false`, so a typo'd source path
+fails at `up` instead of being silently auto-created as an empty directory (Redis reads
+a directory as an *empty config* and falls back to built-in defaults — this bit us:
+until 2026-07-27 the mounts pointed at nonexistent `conf/*.conf` paths and all four
+instances ran on defaults with AOF off).
+
+**Enabling AOF on an instance that doesn't have it yet is order-sensitive.** If Redis
+boots with `appendonly yes` and no AOF manifest in `/data`, it does **not** load
+`dump.rdb` — it starts empty (verified on redis 7.4). To migrate safely:
+
+```bash
+docker exec <name> redis-cli CONFIG SET appendonly yes   # seeds AOF from live dataset
+docker exec <name> redis-cli INFO persistence | grep aof_rewrite_in_progress  # wait for :0
+docker compose up -d <service>                           # now safe to recreate
+docker exec <name> redis-cli DBSIZE                      # compare against pre-migration count
+```
+
 ## Known issues
 
-- **Custom Redis configs are not actually applied.** Compose bind-mounts `./conf/<name>.conf` into each container, but those paths don't exist as files — Docker auto-created them as empty directories. The real configs live at [config/](config/) (different folder, different extension). Redis is currently running on built-in defaults. To fix: rename `config/` → `conf/` and the files to `*.conf`, or update the mount paths in [docker-compose.yaml](docker-compose.yaml).
-- **No AUTH.** None of the instances have `requirepass` set. The `REDIS_PROD_PASSWORD` / `REDIS_STAGING_PASSWORD` entries in `.env` are currently unused — they'll only take effect once the config files are loaded and `requirepass` is uncommented.
+- **No AUTH.** None of the instances have `requirepass` set. The `REDIS_PROD_PASSWORD` / `REDIS_STAGING_PASSWORD` entries in `.env` are currently unused — they'll only take effect once `requirepass` is uncommented in the config files (and every consuming app's Redis client config gains the password). Deferred hardening item; instances are reachable only via `redis_net` and published host ports.
