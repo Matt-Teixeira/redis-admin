@@ -141,7 +141,9 @@ The password never appears in this repo, in `.env`, or in `docker inspect` — t
 authenticated healthcheck parses it inside the container.
 
 **`redis-STAGING` deliberately has no password**: its consumer is odd-jobs, whose
-Redis client has no auth support. Revisit only with Jonathan.
+Redis client has no auth support. It is still a required part of the standard
+four-instance build — `docker compose up -d` always brings up all four; only the
+`requirepass` include differs. Revisit its auth only with Jonathan.
 
 Healthchecks check for a literal `PONG` because `redis-cli` exits 0 even when the
 server refuses the command (e.g. NOAUTH) — exit codes alone would report a locked-out
