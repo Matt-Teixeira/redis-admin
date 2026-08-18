@@ -7,8 +7,19 @@ x-common: &common
     nofile:
       soft: 10032
       hard: 10032
+  # Cap container log growth (audit OPS-02) — tracked here, not in daemon.json,
+  # so a rebuilt server gets it for free. Takes effect at next recreate.
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+  # redis-cli exits 0 even when the server refuses (e.g. NOAUTH), so the reply
+  # text must be checked. This plain variant is for passwordless instances
+  # (currently only redis-STAGING — odd-jobs' client lacks auth support);
+  # auth'd services override it with x-auth-healthcheck.
   healthcheck:
-    test: ["CMD", "redis-cli", "ping"]
+    test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
     interval: 10s
     timeout: 3s
     retries: 5
@@ -16,10 +27,28 @@ x-common: &common
     redis_net:
       ipv4_address: 0.0.0.0 # overwritten per service
 
+# Authenticated variants (REDIS-01 rollout 2026-08-18). The password stays in a
+# root-only host file; the healthcheck parses it inside the container, so no
+# secret appears in this file or in `docker inspect`.
+x-auth-healthcheck: &auth_healthcheck
+  test: ["CMD-SHELL", "redis-cli -a \"$$(awk '/^requirepass/{print $$2}' /usr/local/etc/redis/auth.conf)\" --no-auth-warning ping | grep -q PONG"]
+  interval: 10s
+  timeout: 3s
+  retries: 5
+
+x-auth-mount: &auth_mount
+  type: bind
+  source: /opt/resources/secrets/redis_auth.conf
+  target: /usr/local/etc/redis/auth.conf
+  read_only: true
+  bind:
+    create_host_path: false
+
 services:
   redis-PROD:
     <<: *common
     container_name: redis-PROD
+    healthcheck: *auth_healthcheck
     volumes:
       - prod_data:/data
       # Long-form bind with create_host_path:false — a bad source path fails
@@ -31,6 +60,7 @@ services:
         read_only: true
         bind:
           create_host_path: false
+      - *auth_mount
     networks:
       redis_net:
         ipv4_address: "${REDIS_PROD_IP}"
@@ -53,6 +83,7 @@ services:
   redis_dev-0-4:
     <<: *common
     container_name: redis_dev-0-4
+    healthcheck: *auth_healthcheck
     volumes:
       - dev04_data:/data
       - type: bind
@@ -61,6 +92,7 @@ services:
         read_only: true
         bind:
           create_host_path: false
+      - *auth_mount
     networks:
       redis_net:
         ipv4_address: "${REDIS_DEV04_IP}"
@@ -68,6 +100,7 @@ services:
   redis_dev-0-5:
     <<: *common
     container_name: redis_dev-0-5
+    healthcheck: *auth_healthcheck
     volumes:
       - dev05_data:/data
       - type: bind
@@ -76,6 +109,7 @@ services:
         read_only: true
         bind:
           create_host_path: false
+      - *auth_mount
     networks:
       redis_net:
         ipv4_address: "${REDIS_DEV05_IP}"

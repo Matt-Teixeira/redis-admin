@@ -1,0 +1,13 @@
+[Unit]
+Description=Disable Transparent Huge Pages (Redis reliability prerequisite)
+DefaultDependencies=no
+After=sysinit.target local-fs.target
+Before=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c "echo never > /sys/kernel/mm/transparent_hugepage/enabled"
+ExecStart=/bin/sh -c "echo never > /sys/kernel/mm/transparent_hugepage/defrag"
+
+[Install]
+WantedBy=basic.target
