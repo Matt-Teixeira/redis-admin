@@ -15,9 +15,9 @@ x-common: &common
       max-size: "10m"
       max-file: "3"
   # redis-cli exits 0 even when the server refuses (e.g. NOAUTH), so the reply
-  # text must be checked. This plain variant is for passwordless instances
-  # (currently only redis-STAGING — odd-jobs' client lacks auth support);
-  # auth'd services override it with x-auth-healthcheck.
+  # text must be checked. This plain variant is kept for any future passwordless
+  # instance; since 2026-08-19 ALL FOUR instances are auth'd and override it
+  # with x-auth-healthcheck.
   healthcheck:
     test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
     interval: 10s
@@ -68,6 +68,7 @@ services:
   redis-STAGING:
     <<: *common
     container_name: redis-STAGING
+    healthcheck: *auth_healthcheck
     volumes:
       - staging_data:/data
       - type: bind
@@ -76,6 +77,7 @@ services:
         read_only: true
         bind:
           create_host_path: false
+      - *auth_mount
     networks:
       redis_net:
         ipv4_address: "${REDIS_STAGING_IP}"

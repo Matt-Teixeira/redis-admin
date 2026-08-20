@@ -61,7 +61,7 @@ docker compose logs redis-PROD
 
 **3. Give the consuming apps the password.** Each app that talks to an auth'd
 instance needs `REDIS_PW` in its untracked `.env`, with the same value as the secret
-file. `/opt/resources/scripts/activate_redis_auth.sh` (run with sudo) propagates it
+file. `scripts/activate_redis_auth.sh` (run with sudo) propagates it
 to the four app .envs and verifies the whole setup without echoing the value.
 Order matters on a live server: the server must get its password **before** the app
 .envs — a client configured with a password against a passwordless server hangs in
@@ -70,7 +70,7 @@ fails fast with a clean NOAUTH error.
 
 ## Connecting
 
-From the host (via `docker exec`). Three instances require auth (see the Auth
+From the host (via `docker exec`). All four instances require auth (see the Auth
 section); `redis-cli` never prompts for a password — it connects and then refuses
 commands with `NOAUTH` until you authenticate. This form reads the password from
 the file mounted inside the container without displaying it:
@@ -79,11 +79,10 @@ the file mounted inside the container without displaying it:
 docker exec -it redis-PROD    sh -c 'redis-cli -a "$(awk "/^requirepass/{print \$2}" /usr/local/etc/redis/auth.conf)" --no-auth-warning'
 docker exec -it redis_dev-0-4 sh -c 'redis-cli -a "$(awk "/^requirepass/{print \$2}" /usr/local/etc/redis/auth.conf)" --no-auth-warning'
 docker exec -it redis_dev-0-5 sh -c 'redis-cli -a "$(awk "/^requirepass/{print \$2}" /usr/local/etc/redis/auth.conf)" --no-auth-warning'
-
-docker exec -it redis-STAGING redis-cli    # no auth (odd-jobs — see Auth section)
+docker exec -it redis-STAGING sh -c 'redis-cli -a "$(awk "/^requirepass/{print \$2}" /usr/local/etc/redis/auth.conf)" --no-auth-warning'
 ```
 
-From another container attached to `redis_net`, use the container name or static IP as the host (port `6379` in all cases; for the three auth'd instances add `-a "$REDIS_PW"` or issue `AUTH <password>` after connecting):
+From another container attached to `redis_net`, use the container name or static IP as the host (port `6379` in all cases; add `-a "$REDIS_PW"` or issue `AUTH <password>` after connecting):
 
 ```bash
 redis-cli -h redis-PROD       # or -h 172.24.0.2
@@ -131,19 +130,18 @@ docker compose up -d <service>                           # now safe to recreate
 docker exec <name> redis-cli DBSIZE                      # compare against pre-migration count
 ```
 
-## Auth (added 2026-08-18, audit REDIS-01)
+## Auth (added 2026-08-18, audit REDIS-01; extended to all four 2026-08-19)
 
-Three of the four instances require a password: `redis-PROD`, `redis_dev-0-4`,
-`redis_dev-0-5`. Their tracked configs end with
+All four instances require a password. Every tracked config ends with
 `include /usr/local/etc/redis/auth.conf`, which compose bind-mounts from the
 root-only host file `/opt/resources/secrets/redis_auth.conf` (see Setup step 1).
 The password never appears in this repo, in `.env`, or in `docker inspect` — the
 authenticated healthcheck parses it inside the container.
 
-**`redis-STAGING` deliberately has no password**: its consumer is odd-jobs, whose
-Redis client has no auth support. It is still a required part of the standard
-four-instance build — `docker compose up -d` always brings up all four; only the
-`requirepass` include differs. Revisit its auth only with Jonathan.
+History: `redis-STAGING` was deliberately passwordless until 2026-08-19 because its
+consumer, odd-jobs, had a Redis client with no auth support. Auth was standardized
+across all four on 2026-08-19 — odd-jobs' connectivity must be coordinated with
+Jonathan (an unauthenticated client fails fast with NOAUTH).
 
 Healthchecks check for a literal `PONG` because `redis-cli` exits 0 even when the
 server refuses the command (e.g. NOAUTH) — exit codes alone would report a locked-out

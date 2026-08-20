@@ -7,8 +7,8 @@ set -euo pipefail
 
 SECRET=/opt/resources/secrets/redis_auth.conf
 ADMIN=/opt/apps/redis-admin
-ENVS=(/opt/apps/data_acquisition/.env /opt/apps/hhm_rpp_ge/.env /opt/apps/hhm_rpp_philips/.env /opt/apps/hhm_rpp_siemens/.env)
-AUTHED=(redis-PROD redis_dev-0-4 redis_dev-0-5)
+ENVS=(/opt/apps/data_acquisition/.env /opt/apps/hhm_rpp_ge/.env /opt/apps/hhm_rpp_philips/.env /opt/apps/hhm_rpp_siemens/.env /opt/apps/odd-jobs/.env /opt/apps/mmb-rpp/.env)
+AUTHED=(redis-PROD redis-STAGING redis_dev-0-4 redis_dev-0-5)   # all four since 2026-08-19
 
 [ -r "$SECRET" ] || { echo "FATAL: cannot read $SECRET (run with sudo, after creating it)"; exit 1; }
 PW=$(awk '/^requirepass/{print $2}' "$SECRET")
@@ -16,13 +16,16 @@ PW=$(awk '/^requirepass/{print $2}' "$SECRET")
 
 echo "== pre-recreate key counts"
 declare -A PRE
-for r in "${AUTHED[@]}" redis-STAGING; do
-  PRE[$r]=$(docker exec "$r" redis-cli DBSIZE)
+for r in "${AUTHED[@]}"; do
+  PRE[$r]=$(docker exec "$r" sh -c 'redis-cli -a "$(awk "/^requirepass/{print \$2}" /usr/local/etc/redis/auth.conf)" --no-auth-warning DBSIZE')
   echo "  $r: ${PRE[$r]}"
 done
 
 echo "== updating REDIS_PW in ${#ENVS[@]} .envs (value not echoed)"
 for f in "${ENVS[@]}"; do
+  # Jonathan's apps are on the list but may not be cloned on this box (mmb-rpp);
+  # a missing path must not abort the rotation mid-run (envs updated, server not).
+  [ -f "$f" ] || { echo "  skip $f (not present on this host)"; continue; }
   if grep -q '^REDIS_PW=' "$f"; then
     sed -i "s|^REDIS_PW=.*|REDIS_PW=$PW|" "$f"
   else
@@ -51,7 +54,5 @@ for r in "${AUTHED[@]}"; do
   post=$(docker exec "$r" sh -c 'redis-cli -a "$(awk "/^requirepass/{print \$2}" /usr/local/etc/redis/auth.conf)" --no-auth-warning DBSIZE')
   [ "$post" = "${PRE[$r]}" ] && echo "  $r keys: $post (unchanged)" || { echo "  $r keys: $post vs pre ${PRE[$r]} — MISMATCH"; fail=1; }
 done
-stag=$(docker exec redis-STAGING redis-cli PING)
-[ "$stag" = "PONG" ] && echo "  redis-STAGING: PONG, untouched" || { echo "  redis-STAGING: '$stag' — EXPECTED PONG"; fail=1; }
 
 [ "$fail" -eq 0 ] && echo "== ALL CHECKS PASSED — watch the next cron burst" || { echo "== FAILURES ABOVE — see README rollback"; exit 1; }
