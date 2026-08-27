@@ -2,6 +2,13 @@
 x-common: &common
   image: redis:7-alpine
   restart: unless-stopped
+  # Release provenance (fleet paradigm): which release created this container.
+  # RELEASE_SHA exists only in the DEPLOYED .env (stamped by build-release.sh);
+  # a dev clone has no key, so the label fails safe to 'dev-tree'. The label
+  # changes only when a container is RECREATED — after a release, running
+  # containers keep the previous SHA until the apply step (CLAUDE.md, Release flow).
+  labels:
+    com.redis-admin.release_sha: "${RELEASE_SHA:-dev-tree}"
   command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
   ulimits:
     nofile:
