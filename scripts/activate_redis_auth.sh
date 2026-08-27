@@ -7,7 +7,19 @@ set -euo pipefail
 
 SECRET=/opt/resources/secrets/redis_auth.conf
 ADMIN=/opt/apps/redis-admin
-ENVS=(/opt/apps/data_acquisition/.env /opt/apps/hhm_rpp_ge/.env /opt/apps/hhm_rpp_philips/.env /opt/apps/hhm_rpp_siemens/.env /opt/apps/odd-jobs/.env /opt/apps/mmb-rpp/.env)
+# Both copies of a paradigm-migrated app need the password: the release copy in
+# /opt/apps AND the dev clone in ~/apps (no #RELEASE: override on credentials —
+# a rewrite of only one leaves the other broken until the next release). Dev
+# clones that don't exist on this host are skipped by the loop below, same as
+# Jonathan's apps. Absolute /home paths on purpose: this runs under sudo.
+ENVS=(
+  /opt/apps/data_acquisition/.env  /home/matt-teixeira/apps/data_acquisition/.env
+  /opt/apps/hhm_rpp_ge/.env        /home/matt-teixeira/apps/hhm_rpp_ge/.env
+  /opt/apps/hhm_rpp_philips/.env   /home/matt-teixeira/apps/hhm_rpp_philips/.env
+  /opt/apps/hhm_rpp_siemens/.env   /home/matt-teixeira/apps/hhm_rpp_siemens/.env
+  /opt/apps/odd-jobs/.env
+  /opt/apps/mmb-rpp/.env
+)
 AUTHED=(redis-PROD redis-STAGING redis_dev-0-4 redis_dev-0-5)   # all four since 2026-08-19
 
 [ -r "$SECRET" ] || { echo "FATAL: cannot read $SECRET (run with sudo, after creating it)"; exit 1; }
