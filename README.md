@@ -16,9 +16,8 @@ All containers run `redis:7-alpine` with `appendonly` persistence to a named Doc
 ## Files
 
 - [docker-compose.yaml](docker-compose.yaml) — service definitions, network, volumes
-- [.env](.env) — subnet, IPs, host ports, optional passwords (not committed; see [.gitignore](.gitignore))
+- [.env](.env) — app name, subnet, per-instance IPs (not committed; see [.env.example](.env.example))
 - [config/](config/) — per-instance Redis config files, bind-mounted into each container
-- [commands.sh](commands.sh) — handy raw `docker` commands for ad-hoc start/stop/rebuild
 - [scripts/activate_redis_auth.sh](scripts/activate_redis_auth.sh) — one-shot auth rollout/verification (see Auth section)
 - [host-setup/](host-setup/) — kernel settings Redis needs, installed once per host:
 
@@ -62,7 +61,8 @@ docker compose logs redis-PROD
 **3. Give the consuming apps the password.** Each app that talks to an auth'd
 instance needs `REDIS_PW` in its untracked `.env`, with the same value as the secret
 file. `scripts/activate_redis_auth.sh` (run with sudo) propagates it
-to the four app .envs and verifies the whole setup without echoing the value.
+to every registered app `.env` (the `ENVS` list inside the script — release copies
+and dev clones both) and verifies the whole setup without echoing the value.
 Order matters on a live server: the server must get its password **before** the app
 .envs — a client configured with a password against a passwordless server hangs in
 an infinite reconnect loop (node-redis v4, proven 2026-08-18); the reverse merely
