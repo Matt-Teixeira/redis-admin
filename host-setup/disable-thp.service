@@ -6,6 +6,9 @@ Before=docker.service
 
 [Service]
 Type=oneshot
+# Without this, systemctl shows the unit 'inactive' after its one successful
+# run, which reads as broken. The THP writes persist either way.
+RemainAfterExit=yes
 ExecStart=/bin/sh -c "echo never > /sys/kernel/mm/transparent_hugepage/enabled"
 ExecStart=/bin/sh -c "echo never > /sys/kernel/mm/transparent_hugepage/defrag"
 
