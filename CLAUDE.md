@@ -1,13 +1,12 @@
 # CLAUDE.md — redis-admin
 
-> **⚠️ MIGRATION IN PROGRESS (started 2026-08-26).** This repo is being aligned to
-> the fleet dev/release paradigm — spec: `data_acquisition/docs/migration_CLAUDE.md`
-> (Part 1 = conventions, Part 3 = checklist); admin-repo precedent: `pg_manage_v2`
-> (cut over 2026-08-26). Until cutover, `/opt/apps/redis-admin` is still the
-> pre-paradigm editable tree and is **FROZEN** — all work happens in
-> `~/apps/redis-admin` on `STAGING`. Sections below are corrected in the commit
-> that makes them true. Remove this banner only after cutover verifies: two cron
-> cycles of the consuming apps clean, plus the next nightly backup line.
+> **Migrated to the fleet dev/release paradigm 2026-08-27** (spec:
+> `data_acquisition/docs/migration_CLAUDE.md`; admin-repo precedent: `pg_manage_v2`,
+> 2026-08-26). Release `7bd34e1`, verified: two clean cron cycles of the consuming
+> apps and the 2026-08-28 nightly backup line (`OK ... redis=4 instances`).
+>
+> **The editable clone is `~/apps/redis-admin`; `/opt/apps/redis-admin` is build
+> output produced only by `build-release.sh` — not a git checkout.**
 >
 > **Shape note:** this is an **admin/infra repo** — four long-running Redis
 > containers on stock `redis:7-alpine`, no app code, no image build, no schedule,
@@ -44,7 +43,7 @@ their config bind mounts at the dev clone's files.
 
 ## Paradigm application (what applies, what is skipped)
 
-Applies (adopted 2026-08-26):
+Applies (adopted 2026-08-27):
 
 - **Dev/release split**: editable clone at `~/apps/redis-admin`;
   `/opt/apps/redis-admin` is build output produced only by `build-release.sh`
@@ -110,7 +109,7 @@ Apply notes:
   — force it per instance with `docker compose up -d --force-recreate <svc>`
   (or `docker compose restart <svc>`, which also re-reads the config file).
 
-## Known warts (kept deliberately — owner decisions 2026-08-26)
+## Known warts (kept deliberately — owner decisions 2026-08-26/27)
 
 - **`docker compose down -v` destroys all four datasets.** It stays documented in
   README's lifecycle section without ceremony (owner: keep as-is). Volumes are
