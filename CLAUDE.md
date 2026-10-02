@@ -115,10 +115,11 @@ Apply notes:
   README's lifecycle section without ceremony (owner: keep as-is). Volumes are
   project-named (`redis-admin_*_data`) and survive everything except `-v`.
   The nightly RDBs under `/opt/resources/backups/redis/` are the recovery path.
-- **The `PROD` branch is stale** — none of the August auth work is on it, and
-  local `PROD` is behind `origin/PROD`. Deferred: no PROD server exists yet
-  (server doc: prod is "TBD"). Reconcile when a PROD deployment becomes real;
-  until then `STAGING` is what this server runs.
+- **Branches.** Work is committed on `DEV`; `STAGING` and `PROD` (the GitHub
+  default branch) are promoted from it by fast-forward only
+  (`git push origin DEV:STAGING DEV:PROD`), never edited directly. All three
+  were brought level on 2026-10-02. `main` is a leftover from before the
+  branch scheme and is not used.
 - **Release wipe happens under live bind mounts.** The mirror replaces
   `config/*.config` while four running containers hold them. Running containers
   are unaffected (mounts pin the old inodes) — but a container that dies inside
