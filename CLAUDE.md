@@ -73,8 +73,8 @@ Skipped, deliberately (admin/infra shape — nothing here is a defect):
   backup that covers it belongs to pg_manage_v2.
 - **run_outcome/v1 + SIGTERM handlers** — redis-server's own signal handling +
   AOF persistence is the contract.
-- **Rotation registration** — already listed in `rotate-envs-20260817.sh` and
-  deliberately inert: this `.env` holds no credentials. This repo *owns* the
+- **Rotation registration** — none: there is no rotation script in the fleet
+  (server runbook 3.8), and this `.env` holds no credentials. This repo *owns* the
   Redis secret (`/opt/resources/secrets/redis_auth.conf`); consumers get it via
   `scripts/activate_redis_auth.sh`.
 
