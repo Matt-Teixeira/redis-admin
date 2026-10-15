@@ -19,6 +19,7 @@ All containers run `redis:7-alpine` with `appendonly` persistence to a named Doc
 - [.env](.env) — app name, subnet, per-instance IPs (not committed; see [.env.example](.env.example))
 - [config/](config/) — per-instance Redis config files, bind-mounted into each container
 - [scripts/activate_redis_auth.sh](scripts/activate_redis_auth.sh) — one-shot auth rollout/verification (see Auth section)
+- [docs/app-redis-setup.md](docs/app-redis-setup.md) — for co-workers: connect a new app (instance choice, `.env` keys, password, `redis_net`, Node client)
 - [host-setup/](host-setup/) — kernel settings Redis needs, installed once per host:
 
 ```bash
