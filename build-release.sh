@@ -19,7 +19,7 @@
 #   3. Mirror via tar-pipe   — working tree -> $DEST, with excludes
 #   4. Transform .env        — apply #RELEASE:KEY=VALUE, strip markers
 #      (no #RELEASE: keys exist today; machinery kept so adding one Just Works)
-#   5. Stamp RELEASE_SHA     — into the DEPLOYED .env only (idempotent);
+#   5. Stamp RELEASE_SHA     — + RELEASE_AT, into the DEPLOYED .env only (idempotent);
 #      docker-compose.yaml carries it onto each container as the label
 #      com.redis-admin.release_sha at the next recreate
 #   6. chown svc:docker      — docker-group members read/operate via group
@@ -141,14 +141,18 @@ sudo awk '
 sudo cp "$tmp_env" "$DEST/.env"
 rm -f "$tmp_env"
 
-# --- 5. Stamp RELEASE_SHA (idempotent: delete then append) ---------------------
-# docker-compose.yaml interpolates this into the com.redis-admin.release_sha
+# --- 5. Stamp RELEASE_SHA + RELEASE_AT (idempotent: delete then append) --------
+# docker-compose.yaml interpolates RELEASE_SHA into the com.redis-admin.release_sha
 # label on every service, so each container records the commit that created it
-# — at its NEXT recreate. Never set by hand; a dev clone has no key and the
-# label renders 'dev-tree' instead.
-sudo sed -i '/^# Injected by build-release.sh/d; /^RELEASE_SHA=/d' "$DEST/.env"
-printf '\n# Injected by build-release.sh — do not edit by hand.\nRELEASE_SHA=%s\n' \
-    "$GIT_SHA" | sudo tee -a "$DEST/.env" >/dev/null
+# — at its NEXT recreate. RELEASE_AT is the release time (UTC) for the
+# orchestrator's release-drift view — stamped explicitly because the .env's
+# mtime moves on any edit, copy or restore; it is not a container label (the
+# time belongs to the release, not the container). Never set either by hand; a
+# dev clone has neither and the label renders 'dev-tree' instead.
+RELEASE_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+sudo sed -i '/^# Injected by build-release.sh/d; /^RELEASE_SHA=/d; /^RELEASE_AT=/d' "$DEST/.env"
+printf '\n# Injected by build-release.sh — do not edit by hand.\nRELEASE_SHA=%s\nRELEASE_AT=%s\n' \
+    "$GIT_SHA" "$RELEASE_AT" | sudo tee -a "$DEST/.env" >/dev/null
 
 # --- 6. Ownership ------------------------------------------------------------
 sudo chown -R "${RELEASE_USER}:docker" "$DEST"
@@ -157,7 +161,7 @@ sudo chown -R "${RELEASE_USER}:docker" "$DEST"
 # RELEASE_SHA and the network vars from it at apply time.
 sudo chmod 640 "$DEST/.env" || true
 
-echo "==> release complete: $DEST  commit: $GIT_SHA  (no image build — service app on stock redis:7-alpine)"
+echo "==> release complete: $DEST  commit: $GIT_SHA  at: $RELEASE_AT  (no image build — service app on stock redis:7-alpine)"
 echo ""
 echo "    NOTE: no container was touched. All four instances still run the"
 echo "    pre-release config and carry their previous release_sha label."
@@ -169,4 +173,4 @@ echo "        docker compose up -d redis-STAGING    # odd-jobs — coordinate"
 echo "        docker compose up -d redis_dev-0-4    # busiest last (job apps)"
 echo "    ('up -d' recreates only on compose-config change; config-FILE content"
 echo "     changes need --force-recreate <svc> — see CLAUDE.md, Release flow.)"
-echo "    verify: grep '^RELEASE_SHA=' $DEST/.env ; (cd $DEST && bash preflight-check.sh)"
+echo "    verify: grep -E '^RELEASE_(SHA|AT)=' $DEST/.env ; (cd $DEST && bash preflight-check.sh)"

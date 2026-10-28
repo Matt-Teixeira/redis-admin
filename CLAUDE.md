@@ -49,7 +49,7 @@ Applies (adopted 2026-08-27):
 - **Dev/release split**: editable clone at `~/apps/redis-admin`;
   `/opt/apps/redis-admin` is build output produced only by `build-release.sh`
   (clean-tree guard above the wipe, `#RELEASE:` transform machinery (no keys
-  today), `RELEASE_SHA` stamp, chown `svc:docker`).
+  today), `RELEASE_SHA` + `RELEASE_AT` stamp, chown `svc:docker`).
 - **Release provenance**: `build-release.sh` stamps `RELEASE_SHA` into the
   deployed `.env`; the compose file carries it onto every container as the label
   `com.redis-admin.release_sha` (`${RELEASE_SHA:-dev-tree}` — fails safe to
@@ -57,6 +57,11 @@ Applies (adopted 2026-08-27):
   `docker inspect` answers "which release created this container". The label
   updates only when a container is recreated — after a release, running
   containers carry the previous SHA until the apply step (see *Release flow*).
+  `build-release.sh` also stamps `RELEASE_AT=YYYY-MM-DDTHH:MM:SSZ` (UTC release
+  time, for the orchestrator's release-drift view) beside it in the deployed
+  `.env` — not a container label: the time belongs to the release. Preflight
+  warns when the release `.env` has `RELEASE_SHA` but no `RELEASE_AT` (released
+  before the stamp existed: re-release) or a malformed one.
 - **`.env.example`** as the tracked record of required keys.
 - **`preflight-check.sh`** — read-only, secret-safe checks (auth verified from
   *inside* the containers; the password never leaves them). Zero warnings is the
@@ -84,7 +89,7 @@ Skipped, deliberately (admin/infra shape — nothing here is a defect):
 ```bash
 # 1. RELEASE — from the dev clone; refuses on a dirty tree.
 cd ~/apps/redis-admin && bash build-release.sh
-#    Mirrors the tree to /opt/apps/redis-admin, stamps RELEASE_SHA.
+#    Mirrors the tree to /opt/apps/redis-admin, stamps RELEASE_SHA + RELEASE_AT.
 #    Touches NO container: all four keep running the pre-release config.
 
 # 2. APPLY — from the RELEASE COPY, one instance at a time, in a quiet cron window.
@@ -136,7 +141,7 @@ bash preflight-check.sh          # zero warnings, from either copy
 # Which release is each container running?
 docker ps --filter name=redis --format '{{.Names}}' | xargs -I{} sh -c \
   'echo "{}: $(docker inspect {} --format "{{index .Config.Labels \"com.redis-admin.release_sha\"}}")"'
-grep '^RELEASE_SHA=' /opt/apps/redis-admin/.env
+grep -E '^RELEASE_(SHA|AT)=' /opt/apps/redis-admin/.env   # what is deployed, and since when
 ```
 
 This app writes no run record, so post-change verification reads its
