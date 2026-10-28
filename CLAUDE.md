@@ -20,7 +20,8 @@ connecting, lifecycle, auth); this file carries the conventions and the hazards.
 
 Consumers (server doc STEP 3): `redis_dev-0-4` → the four job apps' live
 acquisition state (data_acquisition, hhm_rpp_ge/philips/siemens);
-`redis-STAGING` → odd-jobs (Jonathan); `redis-PROD` → none currently;
+`redis-STAGING` → none currently (odd-jobs used it on the old staging server;
+no instance is reserved for it, owner 2026-10-28); `redis-PROD` → none currently;
 `redis_dev-0-5` → spare. Nightly RDB backups of all four are owned by
 `pg_manage_v2/scripts/backup.sh`, not this repo.
 
@@ -90,7 +91,7 @@ cd ~/apps/redis-admin && bash build-release.sh
 cd /opt/apps/redis-admin
 docker compose up -d redis_dev-0-5   # spare first
 docker compose up -d redis-PROD      # no consumers
-docker compose up -d redis-STAGING   # odd-jobs — coordinate with Jonathan
+docker compose up -d redis-STAGING   # no consumers (check the Used-by table first)
 docker compose up -d redis_dev-0-4   # busiest last: four job apps' live cursors
 ```
 

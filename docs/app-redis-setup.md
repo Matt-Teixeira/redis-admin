@@ -11,10 +11,10 @@ the shared password into your app's `.env`.
 
 | Instance | Address on `redis_net` | Used by |
 | --- | --- | --- |
-| `redis_dev-0-4` | `redis_dev-0-4:6379` (`172.24.0.4`) | data_acquisition, hhm_rpp_ge, hhm_rpp_philips, hhm_rpp_siemens |
-| `redis-STAGING` | `redis-STAGING:6379` (`172.24.0.3`) | odd-jobs (Jonathan) |
-| `redis-PROD` | `redis-PROD:6379` (`172.24.0.2`) | nothing currently |
-| `redis_dev-0-5` | `redis_dev-0-5:6379` (`172.24.0.5`) | spare |
+| `redis_dev-0-4` | `redis_dev-0-4:6379` (`198.18.1.4`) | data_acquisition, hhm_rpp_ge, hhm_rpp_philips, hhm_rpp_siemens |
+| `redis-STAGING` | `redis-STAGING:6379` (`198.18.1.3`) | nothing currently (holds a copy of the seed) |
+| `redis-PROD` | `redis-PROD:6379` (`198.18.1.2`) | nothing currently (holds a copy of the seed) |
+| `redis_dev-0-5` | `redis_dev-0-5:6379` (`198.18.1.5`) | spare |
 
 Three things follow from this design:
 
